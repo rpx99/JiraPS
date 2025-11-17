@@ -211,6 +211,11 @@ function Invoke-JiraMethod {
                         }
 
                         $total = 0
+                        $isFirstPage = $true
+
+                        # Check if this is a POST request with JSON body (new API v3 /search/jql)
+                        $isTokenBasedPaging = ($Method -eq "POST" -and $Body)
+
                         do {
                             Write-Verbose "[$($MyInvocation.MyCommand.Name)] Invoking pagination [currentTotal: $total]"
 
@@ -237,12 +242,40 @@ function Invoke-JiraMethod {
                                 break
                             }
 
-                            # calculate the size of the next page
-                            $PSBoundParameters["GetParameter"]["startAt"] = $total + $offset
-                            $expectedTotal = $PSBoundParameters["GetParameter"]["startAt"] + $pageSize
-                            if ($expectedTotal -gt $PSCmdlet.PagingParameters.First) {
-                                $reduceBy = $expectedTotal - $PSCmdlet.PagingParameters.First
-                                $PSBoundParameters["GetParameter"]["maxResults"] = $pageSize - $reduceBy
+                            # Check if we should stop based on API v3 token-based paging
+                            if ($isTokenBasedPaging) {
+                                # API v3 /search/jql uses nextPageToken
+                                if ($response.isLast -eq $true) {
+                                    Write-DebugMessage "[$($MyInvocation.MyCommand.Name)] Stopping paging, isLast is true"
+                                    break
+                                }
+
+                                if (-not $response.nextPageToken) {
+                                    Write-DebugMessage "[$($MyInvocation.MyCommand.Name)] Stopping paging, no nextPageToken found"
+                                    break
+                                }
+
+                                # Update the Body with nextPageToken for the next request
+                                $bodyObject = $Body | ConvertFrom-Json
+                                $bodyObject | Add-Member -MemberType NoteProperty -Name "nextPageToken" -Value $response.nextPageToken -Force
+
+                                # Calculate page size for next request
+                                $expectedTotal = $total + $pageSize
+                                if ($expectedTotal -gt $PSCmdlet.PagingParameters.First) {
+                                    $reduceBy = $expectedTotal - $PSCmdlet.PagingParameters.First
+                                    $bodyObject.maxResults = $pageSize - $reduceBy
+                                }
+
+                                $PSBoundParameters["Body"] = ConvertTo-Json -InputObject $bodyObject -Depth 10
+                            }
+                            else {
+                                # Legacy offset-based paging for GET requests
+                                $PSBoundParameters["GetParameter"]["startAt"] = $total + $offset
+                                $expectedTotal = $PSBoundParameters["GetParameter"]["startAt"] + $pageSize
+                                if ($expectedTotal -gt $PSCmdlet.PagingParameters.First) {
+                                    $reduceBy = $expectedTotal - $PSCmdlet.PagingParameters.First
+                                    $PSBoundParameters["GetParameter"]["maxResults"] = $pageSize - $reduceBy
+                                }
                             }
 
                             # Inquire the next page

@@ -96,8 +96,8 @@ function Get-JiraIssue {
 
         $server = Get-JiraConfigServer -ErrorAction Stop
 
-        $searchURi = "$server/rest/api/2/search"
-        $resourceURi = "$server/rest/api/2/issue/{0}"
+        $searchURi = "$server/rest/api/3/search/jql"
+        $resourceURi = "$server/rest/api/3/issue/{0}"
 
         [String]$Fields = $Fields -join ","
     }
@@ -140,22 +140,25 @@ function Get-JiraIssue {
                 }
             }
             'ByJQL' {
+                # Build the JSON body for the new API v3 search/jql endpoint
+                $bodyObject = @{
+                    jql           = $Query
+                    validateQuery = $true
+                    expand        = @("transitions")
+                    maxResults    = $PageSize
+                }
+                if ($Fields) {
+                    # Convert comma-separated fields to array
+                    $bodyObject["fields"] = $Fields -split ','
+                }
+
                 $parameter = @{
                     URI          = $searchURi
-                    Method       = "GET"
-                    GetParameter = @{
-                        jql           = (ConvertTo-URLEncoded $Query)
-                        validateQuery = $true
-                        expand        = "transitions"
-                        maxResults    = $PageSize
-
-                    }
+                    Method       = "POST"
+                    Body         = ConvertTo-Json -InputObject $bodyObject -Depth 10
                     OutputType   = "JiraIssue"
                     Paging       = $true
                     Credential   = $Credential
-                }
-                if ($Fields) {
-                    $parameter["GetParameter"]["fields"] = $Fields
                 }
                 # Paging
                 ($PSCmdlet.PagingParameters | Get-Member -MemberType Property).Name | ForEach-Object {
