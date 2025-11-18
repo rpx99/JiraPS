@@ -142,15 +142,18 @@ function Get-JiraIssue {
             'ByJQL' {
                 # Build the JSON body for the new API v3 search/jql endpoint
                 $bodyObject = @{
-                    jql           = $Query
-                    validateQuery = $true
-                    expand        = @("transitions")
-                    maxResults    = $PageSize
+                    jql        = $Query
+                    maxResults = $PageSize
                 }
+
+                # Add optional fields as array if specified
                 if ($Fields) {
                     # Convert comma-separated fields to array
-                    $bodyObject["fields"] = $Fields -split ','
+                    $bodyObject["fields"] = $Fields -split ',' | ForEach-Object { $_.Trim() }
                 }
+
+                # Add expand as string (not array) for API v3
+                $bodyObject["expand"] = "transitions"
 
                 $parameter = @{
                     URI          = $searchURi
