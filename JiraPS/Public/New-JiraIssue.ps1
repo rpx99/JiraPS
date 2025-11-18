@@ -89,11 +89,15 @@ function New-JiraIssue {
         }
 
         if ($Description) {
-            $requestBody["description"] = $Description
+            # API v3 requires description in Atlassian Document Format (ADF)
+            $requestBody["description"] = ConvertTo-AtlassianDocumentFormat -PlainText $Description
         }
 
         if ($PSCmdlet.MyInvocation.BoundParameters.ContainsKey("Reporter")) {
-            $requestBody["reporter"] = @{"name" = "$Reporter"}
+            Write-Warning "The -Reporter parameter is deprecated in Jira Cloud API v3 and will be ignored. The reporter is automatically set to the authenticated user."
+            # Note: Jira Cloud API v3 does not support setting reporter - it's always the authenticated user
+            # Jira Server may still support this, but it's deprecated
+            # $requestBody["reporter"] = @{"name" = "$Reporter"}
         }
 
         if ($Parent) {

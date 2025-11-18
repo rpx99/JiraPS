@@ -103,7 +103,8 @@ function Add-JiraIssueLink {
                 }
 
                 if ($Comment) {
-                    $body.comment = @{ body = $Comment }
+                    # API v3 requires comment body in Atlassian Document Format (ADF)
+                    $body.comment = @{ body = ConvertTo-AtlassianDocumentFormat -PlainText $Comment }
                 }
 
                 $parameter = @{
