@@ -152,8 +152,9 @@ function Get-JiraIssue {
                     $fieldArray = $Fields -split ',' | ForEach-Object { $_.Trim() }
                     $bodyObject["fields"] = $fieldArray
                 } else {
-                    # Request all navigable fields (default behavior for v2 compatibility)
-                    $bodyObject["fields"] = @("*navigable")
+                    # Request all navigable fields + comment (default behavior for v2 compatibility)
+                    # API v3 doesn't include comment in *navigable, so we add it explicitly
+                    $bodyObject["fields"] = @("*navigable", "comment")
                 }
 
                 # API v3: Request expanded fields to include comments and other related data
