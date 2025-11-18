@@ -156,6 +156,10 @@ function Get-JiraIssue {
                     $bodyObject["fields"] = @("*navigable")
                 }
 
+                # API v3: Request expanded fields to include comments and other related data
+                # This ensures comments are loaded (similar to API v2 behavior)
+                $bodyObject["expand"] = @("renderedFields")
+
                 $parameter = @{
                     URI          = $searchURi
                     Method       = "POST"

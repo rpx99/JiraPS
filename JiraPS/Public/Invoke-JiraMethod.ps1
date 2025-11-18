@@ -265,6 +265,17 @@ function Invoke-JiraMethod {
 
                                 # Update the Body with nextPageToken for the next request
                                 $bodyObject = $Body | ConvertFrom-Json
+
+                                # Ensure fields is always an array (PowerShell ConvertFrom-Json can convert single-item arrays to strings)
+                                if ($bodyObject.fields -and $bodyObject.fields -isnot [Array]) {
+                                    $bodyObject.fields = @($bodyObject.fields)
+                                }
+
+                                # Ensure expand is always an array
+                                if ($bodyObject.expand -and $bodyObject.expand -isnot [Array]) {
+                                    $bodyObject.expand = @($bodyObject.expand)
+                                }
+
                                 $bodyObject | Add-Member -MemberType NoteProperty -Name "nextPageToken" -Value $response.nextPageToken -Force
 
                                 # Calculate page size for next request
@@ -274,7 +285,7 @@ function Invoke-JiraMethod {
                                     $bodyObject.maxResults = $pageSize - $reduceBy
                                 }
 
-                                $PSBoundParameters["Body"] = ConvertTo-Json -InputObject $bodyObject -Depth 10
+                                $PSBoundParameters["Body"] = ConvertTo-Json -InputObject $bodyObject -Depth 10 -Compress
                             }
                             else {
                                 # Legacy offset-based paging for GET requests
