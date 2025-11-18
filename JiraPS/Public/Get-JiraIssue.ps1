@@ -146,14 +146,13 @@ function Get-JiraIssue {
                     maxResults = $PageSize
                 }
 
-                # Add optional fields as array if specified
-                if ($Fields) {
+                # Add fields - API v3 prefers *navigable over *all
+                if ($Fields -and $Fields -ne "*all") {
                     # Convert comma-separated fields to array
-                    $bodyObject["fields"] = $Fields -split ',' | ForEach-Object { $_.Trim() }
+                    $fieldArray = $Fields -split ',' | ForEach-Object { $_.Trim() }
+                    $bodyObject["fields"] = $fieldArray
                 }
-
-                # Add expand as string (not array) for API v3
-                $bodyObject["expand"] = "transitions"
+                # Don't add fields parameter if *all is requested (let API return defaults)
 
                 $parameter = @{
                     URI          = $searchURi
