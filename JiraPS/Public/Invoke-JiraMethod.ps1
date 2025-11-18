@@ -271,10 +271,7 @@ function Invoke-JiraMethod {
                                     $bodyObject.fields = @($bodyObject.fields)
                                 }
 
-                                # Ensure expand is always an array
-                                if ($bodyObject.expand -and $bodyObject.expand -isnot [Array]) {
-                                    $bodyObject.expand = @($bodyObject.expand)
-                                }
+                                # Note: expand must remain a string, not an array (API v3 requirement)
 
                                 $bodyObject | Add-Member -MemberType NoteProperty -Name "nextPageToken" -Value $response.nextPageToken -Force
 
