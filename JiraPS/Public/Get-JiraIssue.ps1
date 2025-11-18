@@ -146,13 +146,15 @@ function Get-JiraIssue {
                     maxResults = $PageSize
                 }
 
-                # Add fields - API v3 prefers *navigable over *all
+                # API v3 requires explicit fields - if not specified, only returns ID
                 if ($Fields -and $Fields -ne "*all") {
                     # Convert comma-separated fields to array
                     $fieldArray = $Fields -split ',' | ForEach-Object { $_.Trim() }
                     $bodyObject["fields"] = $fieldArray
+                } else {
+                    # Request all navigable fields (default behavior for v2 compatibility)
+                    $bodyObject["fields"] = @("*navigable")
                 }
-                # Don't add fields parameter if *all is requested (let API return defaults)
 
                 $parameter = @{
                     URI          = $searchURi
