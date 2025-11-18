@@ -222,11 +222,19 @@ function Invoke-JiraMethod {
                             $result = Expand-Result -InputObject $response
 
                             $total += @($result).Count
-                            $pageSize = $response.maxResults
+                            # Handle missing or zero maxResults (especially in API v3)
+                            $pageSize = if ($response.maxResults -and $response.maxResults -gt 0) {
+                                $response.maxResults
+                            } else {
+                                @($result).Count
+                            }
 
-                            if ($total -gt $PSCmdlet.PagingParameters.First) {
-                                Write-DebugMessage "[$($MyInvocation.MyCommand.Name)] Only output the first $($PSCmdlet.PagingParameters.First % $pageSize) of page"
-                                $result = $result | Select-Object -First ($PSCmdlet.PagingParameters.First % $pageSize)
+                            if ($total -gt $PSCmdlet.PagingParameters.First -and $pageSize -gt 0) {
+                                $remaining = $PSCmdlet.PagingParameters.First % $pageSize
+                                if ($remaining -gt 0) {
+                                    Write-DebugMessage "[$($MyInvocation.MyCommand.Name)] Only output the first $remaining of page"
+                                    $result = $result | Select-Object -First $remaining
+                                }
                             }
 
                             Convert-Result -InputObject $result -OutputType $OutputType
